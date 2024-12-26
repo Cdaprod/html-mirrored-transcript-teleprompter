@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter</title>
+    <style>
+        :root {
+            --container-width: 100%;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .speed-control {
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 50px);
+            margin-top: 50px;
+            width: var(--container-width);
+        }
+
+        .teleprompter {
+            display: none;
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .mirror {
+            transform: scaleX(-1);
+            display: block !important;
+        }
+
+        .show {
+            display: block !important;
+        }
+
+        .script {
+            font-size: 24px;
+            line-height: 1.5;
+            margin: 0 auto;
+            max-width: 800px;
+            padding: 20px;
+        }
+
+        .pause {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .slow {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+
+        .controls button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            margin: 0 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .controls button:hover {
+            background: #444;
+        }
+
+        #speedValue {
+            min-width: 40px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div>
+            <button onclick="resetScroll()">Reset</button>
+            <button onclick="toggleScroll()">Start/Stop</button>
+            <button onclick="toggleView()">Toggle Mirror</button>
+            <button onclick="toggleSplit()">Toggle Split View</button>
+        </div>
+        <div class="speed-control">
+            <button onclick="adjustSpeed(-1)">-</button>
+            <span id="speedValue">1x</span>
+            <button onclick="adjustSpeed(1)">+</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="teleprompter" id="original">
+            <div class="script" id="original-script">
+                Loading transcript...
+            </div>
+        </div>
+        <div class="teleprompter mirror" id="mirrored">
+            <div class="script" id="mirrored-script">
+                Loading transcript...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load transcript from file
+        async function loadTranscript() {
+            try {
+                const response = await fetch('transcript.md');
+                const text = await response.text();
+                
+                // Process the text and add HTML formatting
+                const formattedText = text.split('\n\n').map(paragraph => {
+                    // Replace [PAUSE] and [SLOW] with styled spans
+                    paragraph = paragraph
+                        .replace(/\[PAUSE\]/g, '<span class="pause">[PAUSE]</span>')
+                        .replace(/\[SLOW\]/g, '<span class="slow">[SLOW]</span>')
+                        .replace(/\[END\]/g, '<span class="pause">[END]</span>');
+                    return paragraph + '<br><br>';
+                }).join('');
+
+                // Update both original and mirrored scripts
+                document.getElementById('original-script').innerHTML = formattedText;
+                document.getElementById('mirrored-script').innerHTML = formattedText;
+            } catch (error) {
+                console.error('Error loading transcript:', error);
+                document.getElementById('original-script').innerHTML = 'Error loading transcript. Please check if transcript.txt exists.';
+                document.getElementById('mirrored-script').innerHTML = 'Error loading transcript. Please check if transcript.txt exists.';
+            }
+        }
+
+        // Load transcript when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTranscript();
+            const original = document.getElementById('original');
+            const mirrored = document.getElementById('mirrored');
+            original.style.display = 'none';
+            mirrored.style.display = 'block';
+        });
+        let scrolling = false;
+        let speed = 1;
+        const scrollStep = 1;
+        let scrollInterval;
+
+        // Handle keyboard events for presentation remote
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    scroll(-100);
+                    break;
+                case 'ArrowDown':
+                    scroll(100);
+                    break;
+                case ' ':  // Space bar
+                    toggleScroll();
+                    break;
+                case 'Home':
+                    resetScroll();
+                    break;
+            }
+        });
+
+        function scroll(amount) {
+            const containers = document.querySelectorAll('.teleprompter');
+            containers.forEach(container => {
+                container.scrollBy({
+                    top: amount,
+                    behavior: 'smooth'
+                });
+            });
+        }
+
+        function toggleScroll() {
+            scrolling = !scrolling;
+            if (scrolling) {
+                scrollInterval = setInterval(() => {
+                    scroll(scrollStep * speed);
+                }, 20);
+            } else {
+                clearInterval(scrollInterval);
+            }
+        }
+
+        function resetScroll() {
+            const containers = document.querySelectorAll('.teleprompter');
+            containers.forEach(container => {
+                container.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        }
+
+        function adjustSpeed(change) {
+            speed = Math.max(0.5, Math.min(5, speed + change * 0.5));
+            document.getElementById('speedValue').textContent = speed + 'x';
+            if (scrolling) {
+                clearInterval(scrollInterval);
+                scrollInterval = setInterval(() => {
+                    scroll(scrollStep * speed);
+                }, 20);
+            }
+        }
+
+        // View toggle functions
+        function toggleView() {
+            const original = document.getElementById('original');
+            const mirrored = document.getElementById('mirrored');
+            
+            if (original.style.display === 'block') {
+                original.style.display = 'none';
+                mirrored.style.display = 'block';
+                document.documentElement.style.setProperty('--container-width', '100%');
+            } else {
+                original.style.display = 'block';
+                mirrored.style.display = 'none';
+                document.documentElement.style.setProperty('--container-width', '100%');
+            }
+        }
+
+        function toggleSplit() {
+            const original = document.getElementById('original');
+            const mirrored = document.getElementById('mirrored');
+            
+            if (original.style.display === 'block' && mirrored.style.display === 'block') {
+                original.style.display = 'none';
+                mirrored.style.display = 'block';
+                document.documentElement.style.setProperty('--container-width', '100%');
+            } else {
+                original.style.display = 'block';
+                mirrored.style.display = 'block';
+                document.documentElement.style.setProperty('--container-width', '50%');
+            }
+        }
+
+        // Initialize with only mirrored view
+        document.addEventListener('DOMContentLoaded', function() {
+            const original = document.getElementById('original');
+            const mirrored = document.getElementById('mirrored');
+            original.style.display = 'none';
+            mirrored.style.display = 'block';
+        });
+
+        // Sync scroll between containers
+        document.querySelectorAll('.teleprompter').forEach(container => {
+            container.addEventListener('scroll', (e) => {
+                const scrollTop = e.target.scrollTop;
+                document.querySelectorAll('.teleprompter').forEach(other => {
+                    if (other !== e.target) {
+                        other.scrollTop = scrollTop;
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
