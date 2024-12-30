@@ -168,20 +168,26 @@
         const scrollStep = 1;
         let scrollInterval;
 
-        // Handle keyboard events for presentation remote
         document.addEventListener('keydown', (e) => {
-            switch(e.key) {
+            // Prevent default browser behavior
+            e.preventDefault();
+
+            switch (e.key) {
                 case 'ArrowUp':
+                    // Scroll up by 100px
                     scroll(-100);
                     break;
                 case 'ArrowDown':
+                    // Scroll down by 100px
                     scroll(100);
                     break;
-                case ' ':  // Space bar
+                case ' ': // Space bar to toggle scrolling
                     toggleScroll();
                     break;
-                case 'Home':
+                case 'Home': // Reset scroll to the top
                     resetScroll();
+                    break;
+                default:
                     break;
             }
         });
