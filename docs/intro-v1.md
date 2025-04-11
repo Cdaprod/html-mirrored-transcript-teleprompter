@@ -18,8 +18,9 @@ And creating this video you're watching right now. That's the reward I get from 
 
 "Let me break it down for you talkin the really gangsta challenge. When chaos isnt just something you put on a t-shirt and you've lived through enough of it, you learn that your darkest moments dont define your destiny - its the real foundational kind of fit. I'm living proof of that.
 
-For example: I was 15 when I caught fire - literally. Real flames. Real scars. 
-Which was uhh...ultimately then followed by burning down everything around me, metaphorically speaking and all that stuff. 
+I was around 17 when I caught fire - literally. Real flames. Real scars. Real gasoline on a bonfire. Which was uhh...ultimately then followed by burning down everything around me, metaphorically speaking and all that stuff. 
+
+Thats alright for me to say, because i am not victimizing myself and its obvious i 
 
 Here's! 👏 what... they dont tell you about scars--the ones that ‘don’t heal on their own’ are the ones youre happier stuck on. 
 

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background: #333;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            z-index: 100;
+        }
+        .controls button {
+            padding: 8px 16px;
+            background: #4a4a4a;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #5a5a5a;
+        }
+        .controls select {
+            padding: 8px;
+            background: #4a4a4a;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .speed-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .content {
+            margin-top: 60px;
+            white-space: pre-wrap;
+            font-size: 24px;
+            line-height: 1.5;
+            padding: 20px;
+        }
+        .mirror {
+            transform: scaleX(-1);
+        }
+        .split {
+            display: flex;
+        }
+        .split .content {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <select id="fileSelect">
+            <option value="">Select a file...</option>
+        </select>
+        <button id="togglePlay">Start/Stop</button>
+        <button id="toggleMirror">Toggle Mirror</button>
+        <button id="toggleSplit">Toggle Split View</button>
+        <div class="speed-controls">
+            <button id="decreaseSpeed">-</button>
+            <span id="speedDisplay">1x</span>
+            <button id="increaseSpeed">+</button>
+        </div>
+    </div>
+    <div id="container">
+        <div id="content" class="content"></div>
+    </div>
+
+    <script>
+        class Teleprompter {
+            constructor() {
+                this.content = document.getElementById('content');
+                this.container = document.getElementById('container');
+                this.fileSelect = document.getElementById('fileSelect');
+                this.speedDisplay = document.getElementById('speedDisplay');
+                this.scrollInterval = null;
+                this.speed = 1;
+                this.isPlaying = false;
+                this.isMirrored = false;
+                this.isSplit = false;
+
+                this.initializeControls();
+                this.loadFileList();
+            }
+
+            async loadFileList() {
+                try {
+                    const response = await fetch('/api/files?path=docs/*.md');
+                    const files = await response.json();
+                    
+                    this.fileSelect.innerHTML = '<option value="">Select a file...</option>';
+                    files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file;
+                        option.textContent = file.replace('docs/', '').replace('.md', '');
+                        this.fileSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error loading file list:', error);
+                    this.content.textContent = 'Error loading file list';
+                }
+            }
+
+            async loadFile(filename) {
+                if (!filename) return;
+                try {
+                    const response = await fetch(`/docs/${filename}`);
+                    const text = await response.text();
+                    this.content.textContent = text;
+                } catch (error) {
+                    console.error('Error loading file:', error);
+                    this.content.textContent = 'Error loading file';
+                }
+            }
+
+            initializeControls() {
+                this.fileSelect.addEventListener('change', (e) => {
+                    this.loadFile(e.target.value);
+                });
+
+                document.getElementById('togglePlay').addEventListener('click', () => {
+                    this.togglePlay();
+                });
+
+                document.getElementById('toggleMirror').addEventListener('click', () => {
+                    this.toggleMirror();
+                });
+
+                document.getElementById('toggleSplit').addEventListener('click', () => {
+                    this.toggleSplit();
+                });
+
+                document.getElementById('decreaseSpeed').addEventListener('click', () => {
+                    this.adjustSpeed(-0.1);
+                });
+
+                document.getElementById('increaseSpeed').addEventListener('click', () => {
+                    this.adjustSpeed(0.1);
+                });
+            }
+
+            togglePlay() {
+                this.isPlaying = !this.isPlaying;
+                if (this.isPlaying) {
+                    this.startScroll();
+                } else {
+                    this.stopScroll();
+                }
+            }
+
+            toggleMirror() {
+                this.isMirrored = !this.isMirrored;
+                this.content.classList.toggle('mirror', this.isMirrored);
+            }
+
+            toggleSplit() {
+                this.isSplit = !this.isSplit;
+                this.container.classList.toggle('split', this.isSplit);
+                if (this.isSplit) {
+                    if (!document.getElementById('content-mirror')) {
+                        const mirror = this.content.cloneNode(true);
+                        mirror.id = 'content-mirror';
+                        mirror.classList.add('mirror');
+                        this.container.appendChild(mirror);
+                    }
+                } else {
+                    const mirror = document.getElementById('content-mirror');
+                    if (mirror) {
+                        mirror.remove();
+                    }
+                }
+            }
+
+            startScroll() {
+                this.scrollInterval = setInterval(() => {
+                    window.scrollBy(0, this.speed);
+                }, 20);
+            }
+
+            stopScroll() {
+                if (this.scrollInterval) {
+                    clearInterval(this.scrollInterval);
+                    this.scrollInterval = null;
+                }
+            }
+
+            adjustSpeed(delta) {
+                this.speed = Math.max(0.1, Math.min(5, this.speed + delta));
+                this.speedDisplay.textContent = `${this.speed.toFixed(1)}x`;
+            }
+        }
+
+        // Initialize the teleprompter when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new Teleprompter();
+        });
+    </script>
+</body>
+</html>
