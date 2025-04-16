@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teleprompter</title>
+  <style>
+    :root {
+      --container-width: 100%;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+    }
+    .controls {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .speed-control {
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .container {
+      display: flex;
+      height: calc(100vh - 50px);
+      margin-top: 50px;
+      width: var(--container-width);
+    }
+    .teleprompter {
+      display: none;
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+    .mirror {
+      transform: scaleX(-1);
+      display: block !important;
+    }
+    .show {
+      display: block !important;
+    }
+    .script {
+      font-size: 24px;
+      line-height: 1.5;
+      margin: 0 auto;
+      max-width: 800px;
+      padding: 20px;
+    }
+    .pause {
+      color: #ff6b6b;
+      font-weight: bold;
+    }
+    .slow {
+      color: #4ecdc4;
+      font-weight: bold;
+    }
+    .controls button {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 8px 15px;
+      margin: 0 5px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .controls button:hover {
+      background: #444;
+    }
+    #speedValue {
+      min-width: 40px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div>
+      <button onclick="resetScroll()">Reset</button>
+      <button onclick="toggleScroll()">Start/Stop</button>
+      <button onclick="toggleView()">Toggle Mirror</button>
+      <button onclick="toggleSplit()">Toggle Split View</button>
+    </div>
+    <div class="speed-control">
+      <button onclick="adjustSpeed(-1)">-</button>
+      <span id="speedValue">1x</span>
+      <button onclick="adjustSpeed(1)">+</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="teleprompter" id="original">
+      <div class="script" id="original-script">
+        Coding from a Skateboard – Remote Dev That’s Actually Local<br><br>
+
+        My MacBook’s parked in the garage. I step outside, open my phone -- and I’m already in my dev environment.<br><br>
+
+        SSH over Tailscale. Local files. Real work. This is mobile coding -- without the cloud.<br><br>
+
+        Here’s how it works: Tailscale creates a secure mesh connecting my iPhone, my garage-based MacBook, and my Raspberry Pi cluster at home.<br><br>
+
+        With the Shellfish app on my phone, I have remote file access over SSH -- allowing me to code on real hardware as if it were local.<br><br>
+
+        Watch as I pull code, make edits, and push commits in real time. This terminal session is live, connecting me directly to my MacBook.<br><br>
+
+        And if I need a graphical interface, I seamlessly switch to code-server in the browser.<br><br>
+
+        At home, my MacBook handles the heavy lifting while my Raspberry Pi cluster powers services like object storage, vector databases, and self-hosted GitHub Actions runners.<br><br>
+
+        Every component is secure, private, and entirely under my control.<br><br>
+
+        As a single dad with triplet boys, I can’t always be at a desk.<br><br>
+
+        This setup gives me the freedom to build, code, and push my projects no matter where life takes me.<br><br>
+
+        I can write code, sync dotfiles, trigger automated workflows, and even deploy AI pipelines -- all from my phone while on the move.<br><br>
+
+        If this local-first dev approach inspires you, check out my repo and join the movement.<br><br>
+
+        Build your own stack. Follow along for more tips and setups.
+      </div>
+    </div>
+    <div class="teleprompter mirror" id="mirrored">
+      <div class="script" id="mirrored-script">
+        Coding from a Skateboard – Remote Dev That’s Actually Local<br><br>
+
+        My MacBook’s parked in the garage. I step outside, open my phone -- and I’m already in my dev environment.<br><br>
+
+        SSH over Tailscale. Local files. Real work. This is mobile coding -- without the cloud.<br><br>
+
+        Here’s how it works: Tailscale creates a secure mesh connecting my iPhone, my garage-based MacBook, and my Raspberry Pi cluster at home.<br><br>
+
+        With the Shellfish app on my phone, I have remote file access over SSH -- allowing me to code on real hardware as if it were local.<br><br>
+
+        Watch as I pull code, make edits, and push commits in real time. This terminal session is live, connecting me directly to my MacBook.<br><br>
+
+        And if I need a graphical interface, I seamlessly switch to code-server in the browser.<br><br>
+
+        At home, my MacBook handles the heavy lifting while my Raspberry Pi cluster powers services like object storage, vector databases, and self-hosted GitHub Actions runners.<br><br>
+
+        Every component is secure, private, and entirely under my control.<br><br>
+
+        As a single dad with triplet boys, I can’t always be at a desk.<br><br>
+
+        This setup gives me the freedom to build, code, and push my projects no matter where life takes me.<br><br>
+
+        I can write code, sync dotfiles, trigger automated workflows, and even deploy AI pipelines -- all from my phone while on the move.<br><br>
+
+        If this local-first dev approach inspires you, check out my repo and join the movement.<br><br>
+
+        Build your own stack. Follow along for more tips and setups.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // The following script now handles scrolling and view controls.
+    let scrolling = false;
+    let speed = 1;
+    const scrollStep = 1;
+    let scrollInterval;
+
+    document.addEventListener('keydown', (e) => {
+      e.preventDefault();
+      switch (e.key) {
+        case 'ArrowUp':
+          scroll(-100);
+          break;
+        case 'ArrowDown':
+          scroll(100);
+          break;
+        case ' ':
+          toggleScroll();
+          break;
+        case 'Home':
+          resetScroll();
+          break;
+        default:
+          break;
+      }
+    });
+
+    function scroll(amount) {
+      const containers = document.querySelectorAll('.teleprompter');
+      containers.forEach(container => {
+        container.scrollBy({
+          top: amount,
+          behavior: 'smooth'
+        });
+      });
+    }
+
+    function toggleScroll() {
+      scrolling = !scrolling;
+      if (scrolling) {
+        scrollInterval = setInterval(() => {
+          scroll(scrollStep * speed);
+        }, 20);
+      } else {
+        clearInterval(scrollInterval);
+      }
+    }
+
+    function resetScroll() {
+      const containers = document.querySelectorAll('.teleprompter');
+      containers.forEach(container => {
+        container.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
+    }
+
+    function adjustSpeed(change) {
+      speed = Math.max(0.5, Math.min(5, speed + change * 0.5));
+      document.getElementById('speedValue').textContent = speed + 'x';
+      if (scrolling) {
+        clearInterval(scrollInterval);
+        scrollInterval = setInterval(() => {
+          scroll(scrollStep * speed);
+        }, 20);
+      }
+    }
+
+    function toggleView() {
+      const original = document.getElementById('original');
+      const mirrored = document.getElementById('mirrored');
+      if (original.style.display === 'block') {
+        original.style.display = 'none';
+        mirrored.style.display = 'block';
+        document.documentElement.style.setProperty('--container-width', '100%');
+      } else {
+        original.style.display = 'block';
+        mirrored.style.display = 'none';
+        document.documentElement.style.setProperty('--container-width', '100%');
+      }
+    }
+
+    function toggleSplit() {
+      const original = document.getElementById('original');
+      const mirrored = document.getElementById('mirrored');
+      if (original.style.display === 'block' && mirrored.style.display === 'block') {
+        original.style.display = 'none';
+        mirrored.style.display = 'block';
+        document.documentElement.style.setProperty('--container-width', '100%');
+      } else {
+        original.style.display = 'block';
+        mirrored.style.display = 'block';
+        document.documentElement.style.setProperty('--container-width', '50%');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const original = document.getElementById('original');
+      const mirrored = document.getElementById('mirrored');
+      original.style.display = 'none';
+      mirrored.style.display = 'block';
+    });
+
+    // Sync scrolling between teleprompter views.
+    document.querySelectorAll('.teleprompter').forEach(container => {
+      container.addEventListener('scroll', (e) => {
+        const scrollTop = e.target.scrollTop;
+        document.querySelectorAll('.teleprompter').forEach(other => {
+          if (other !== e.target) {
+            other.scrollTop = scrollTop;
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
